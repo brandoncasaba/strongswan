@@ -63,6 +63,14 @@ struct vpnservice_builder_t {
 	bool (*add_dns)(vpnservice_builder_t *this, host_t *dns);
 
 	/**
+	 * Add a search domain
+	 *
+	 * @param search domain		the search domain to add
+	 * @return					TRUE on success
+	 */
+	bool (*add_search_domain)(vpnservice_builder_t *this, char *search_domain);
+
+	/**
 	 * Set the MTU for the TUN device
 	 *
 	 * @param mtu				the MTU to set

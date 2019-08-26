@@ -865,7 +865,7 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 		{
 			try
 			{
-				mBuilder.addSearchDomain(domain);
+				mCache.addSearchDomain(domain);
 			}
 			catch (IllegalArgumentException ex)
 			{
@@ -1074,6 +1074,7 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 		private final SelectedAppsHandling mAppHandling;
 		private final SortedSet<String> mSelectedApps;
 		private final List<InetAddress> mDnsServers = new ArrayList<>();
+		private final List<String> mSearchDomain = new ArrayList<>();
 		private int mMtu;
 		private boolean mIPv4Seen, mIPv6Seen, mDnsServersConfigured;
 
@@ -1185,6 +1186,11 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 			}
 		}
 
+		public void addSearchDomain(String searchDomain)
+		{
+			mSearchDomain.add(searchDomain);
+		}
+
 		public void setMtu(int mtu)
 		{
 			mMtu = mtu;
@@ -1220,6 +1226,11 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 			{
 				builder.addDnsServer(server);
 			}
+			for (String domain : mSearchDomain)
+			{
+				builder.addSearchDomain(domain);
+			}
+
 			/* add routes depending on whether split tunneling is allowed or not,
 			 * that is, whether we have to handle and block non-VPN traffic */
 			if ((mSplitTunneling & VpnProfile.SPLIT_TUNNELING_BLOCK_IPV4) == 0)

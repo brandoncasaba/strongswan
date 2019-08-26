@@ -39,30 +39,63 @@ METHOD(attribute_handler_t, handle, bool,
 	configuration_attribute_type_t type, chunk_t data)
 {
 	vpnservice_builder_t *builder;
+	bool is_dns = FALSE;
 	host_t *dns;
+	bool is_def_domain = FALSE;
+	char *search_domain;
 
 	switch (type)
 	{
 		case INTERNAL_IP4_DNS:
+		    is_dns = TRUE;
 			dns = host_create_from_chunk(AF_INET, data, 0);
 			break;
 		case INTERNAL_IP6_DNS:
+		    is_dns = TRUE;
 			dns = host_create_from_chunk(AF_INET6, data, 0);
+			break;
+        case UNITY_DEF_DOMAIN:
+			is_def_domain = TRUE;
+			if (chunk_printable(data, NULL, 0))
+			{
+			    search_domain = strndup(data.ptr, data.len);
+			}
 			break;
 		default:
 			return FALSE;
 	}
 
-	if (!dns || dns->is_anyaddr(dns))
-	{
-		DESTROY_IF(dns);
-		return FALSE;
+    if (is_dns)
+    {
+        if (!dns || dns->is_anyaddr(dns))
+        {
+            DESTROY_IF(dns);
+            return FALSE;
+        }
+        DBG1(DBG_IKE, "installing DNS server %H", dns);
+        builder = charonservice->get_vpnservice_builder(charonservice);
+        builder->add_dns(builder, dns);
+        dns->destroy(dns);
+        return TRUE;
 	}
-	DBG1(DBG_IKE, "installing DNS server %H", dns);
-	builder = charonservice->get_vpnservice_builder(charonservice);
-	builder->add_dns(builder, dns);
-	dns->destroy(dns);
-	return TRUE;
+	else if (is_def_domain)
+	{
+	    if (!search_domain || sizeof(search_domain) == 0)
+	    {
+	        free(search_domain);
+	        return FALSE;
+	    }
+        DBG1(DBG_IKE, "installing search domain %s", search_domain);
+        builder = charonservice->get_vpnservice_builder(charonservice);
+        builder->add_search_domain(builder, search_domain);
+        free(search_domain);
+        return TRUE;
+	}
+	else
+	{
+	    // We shouldn't be here...
+	    return FALSE;
+	}
 }
 
 METHOD(attribute_handler_t, release, void,

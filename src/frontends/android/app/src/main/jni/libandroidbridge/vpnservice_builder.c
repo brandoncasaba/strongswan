@@ -197,6 +197,42 @@ failed:
 	return FALSE;
 }
 
+METHOD(vpnservice_builder_t, add_search_domain, bool,
+	private_vpnservice_builder_t *this, char *search_domain)
+{
+	JNIEnv *env;
+	jmethodID method_id;
+	jstring str;
+
+	androidjni_attach_thread(&env);
+
+	DBG2(DBG_LIB, "builder: adding search domain %s", search_domain);
+
+	method_id = (*env)->GetMethodID(env, android_charonvpnservice_builder_class,
+									"addSearchDomain", "(Ljava/lang/String;)Z");
+	if (!method_id)
+	{
+		goto failed;
+	}
+	str = (*env)->NewStringUTF(env, search_domain);
+	if (!str)
+	{
+		goto failed;
+	}
+	if (!(*env)->CallBooleanMethod(env, this->builder, method_id, str))
+	{
+		goto failed;
+	}
+	androidjni_detach_thread();
+	return TRUE;
+
+failed:
+	DBG1(DBG_LIB, "builder: failed to add search domain");
+	androidjni_exception_occurred(env);
+	androidjni_detach_thread();
+	return FALSE;
+}
+
 /**
  * Establish or reestablish the TUN device
  */
@@ -264,6 +300,7 @@ vpnservice_builder_t *vpnservice_builder_create(jobject builder)
 			.add_address = _add_address,
 			.add_route = _add_route,
 			.add_dns = _add_dns,
+			.add_search_domain = _add_search_domain,
 			.set_mtu = _set_mtu,
 			.establish = _establish,
 			.establish_no_dns = _establish_no_dns,
